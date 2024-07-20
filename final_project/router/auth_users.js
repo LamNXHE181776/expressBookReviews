@@ -53,9 +53,10 @@ regd_users.post("/login", (req, res) => {
   
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-    const { username, review } = req.body;
+    const { review } = req.body;
     const { isbn } = req.params;
-    
+    const { username } = req.session.authorization;
+
     if (!username || !review) {
         return res.status(400).json({ message: "Invalid input. Username and review are required." });
     }
@@ -65,20 +66,15 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
         return res.status(404).json({ message: "Book not found" });
     }
 
-    const existingReview = book.reviews.find(r => r.username === username);
-    if (existingReview) {
-        existingReview.review = review;
-    } else {
-        book.reviews.push({ username, review });
-    }
+    book.reviews[username] = review;
 
-    res.status(200).json({ message: "Review added/modified successfully." });
+    res.status(200).json({ message: "Review added/modified successfully.", book });
 });
 
 regd_users.delete("/auth/review/:isbn", (req, res) => {
-    const { username } = req.session.authorization;
     const { isbn } = req.params;
-    
+    const { username } = req.session.authorization;
+
     if (!username) {
         return res.status(401).json({ message: "Unauthorized" });
     }
@@ -88,12 +84,12 @@ regd_users.delete("/auth/review/:isbn", (req, res) => {
         return res.status(404).json({ message: "Book not found" });
     }
 
-    const reviewIndex = book.reviews.findIndex(r => r.username === username);
-    if (reviewIndex === -1) {
+    if (!book.reviews[username]) {
         return res.status(404).json({ message: "Review not found" });
     }
 
-    book.reviews.splice(reviewIndex, 1);
+    delete book.reviews[username];
+
     res.status(200).json({ message: "Review deleted successfully." });
 });
 

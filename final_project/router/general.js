@@ -1,21 +1,9 @@
 const express = require('express');
+const axios = require('axios');
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
-
-const doesExist = (username) => {
-    // Filter the users array for any user with the same username
-    let userswithsamename = users.filter((user) => {
-        return user.username === username;
-    });
-    // Return true if any user with the same username is found, otherwise false
-    if (userswithsamename.length > 0) {
-        return true;
-    } else {
-        return false;
-    }
-}
 
 
 public_users.post("/register", (req,res) => {
@@ -39,18 +27,23 @@ public_users.post("/register", (req,res) => {
 
 
 public_users.get('/', function (req, res) {
-    res.send(JSON.stringify(books, null, 4));
+    axios.get('http://localhost:5000/books')
+        .then(response => {
+            res.send(JSON.stringify(response.data, null, 4));
+        })
+        .catch(error => {
+            res.status(500).json({ message: "Error fetching book list", error: error.message });
+        });
 });
 
-
 // Get book details based on ISBN
-public_users.get('/isbn/:isbn', (req, res) => {
-    const isbn = req.params.isbn;
-    const book = Object.values(books).find(b => b.isbn === isbn);
-    if (book) {
-        res.send(book);
-    } else {
-        res.status(404).json({ message: "Book not found" });
+public_users.get('/books', async function (req, res) {
+    try {
+        const response = await axios.get('http://localhost:5000/books');
+        res.send(JSON.stringify(response.data, null, 4));
+    } catch (error) {
+        console.error("Error fetching book list:", error.message);
+        res.status(500).json({ message: "Error fetching book list", error: error.message });
     }
 });
 
